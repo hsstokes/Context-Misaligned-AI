@@ -208,7 +208,7 @@
             }
         }
         
-        // Rectangle grid effect (modified from circles)
+        // Rectangle grid effect (change to reflect Misaligned Circles/Ellipses)
         class Projectile {
             constructor(x, y, radius, colour, direction) {
                 this.x = x;
@@ -235,17 +235,16 @@
                 
                 // Choose effect type (0 = single rect, 1 = grid, 2 = layered)
                 this.effectType = floor(random(3));
+
+                // For misalignment
+                this.ellipseStretch = random(0.5, 1.5); // Stretch factor for ellipses
             }
             // Helper function to draw a hexagon
-            drawHexagon(x,y, radius) {
-                beginShape();
-                for (let i = 0; i < 6; i++)
-                    { const angle = TWO_PI / 6 * i + PI / 6; //Adding PI/6 rotates to flat-top orientation
-                      const hx = x + radius * cos(angle);
-                      const hy = y + radius * sin(angle);
-                      vertex(hx, hy);
-                }
-                endShape(CLOSE);
+            drawEllipse(x,y, radius) {
+                // Create a slightly misaligned ellipse
+                const stretchX = radius * this.ellipseStretch;
+                const stretchY = radius / this.ellipseStretch;
+                ellipse(x, y, stretchX, stretchY);
             
             }
             draw() {
@@ -259,7 +258,7 @@
                 const alpha = map(this.age, 0, this.lifetime, 255, 0);
                 fill(red(this.colour), green(this.colour), blue(this.colour), alpha);
                 
-                 // Draw spiral effect instead of hex effect
+                // Draw spiral effect with ellipses
                 this.drawSpiralEffect(0, 0, this.radius);
                 
                 pop();
@@ -285,13 +284,13 @@
                 this.age++;
             }
             
-            // New method to draw spiral effects
+            // New method to draw spiral effects with ellipses
             drawSpiralEffect(x, y, radius) {
                 if (this.effectType === 0) {
-                    // Single hexagon (unchanged for this type)
-                    this.drawHexagon(x, y, radius);
+                    // Single ellipse)
+                    this.drawEllipse(x, y, radius);
                 } else if (this.effectType === 1) {
-                     // Spiral pattern
+                    // Spiral pattern with misaligned ellipses
                     const turns = 3; // Number of spiral turns
                     const pointsPerTurn = 8; // Density of the spiral
                     const totalPoints = turns * pointsPerTurn;
@@ -300,19 +299,29 @@
                         // Calculate spiral coordinates
                         const angle = 0.5 * i; // Controls how tight the spiral is
                         const distance = (i / totalPoints) * radius;
-                        const spiralX = x + cos(angle) * distance;
-                        const spiralY = y + sin(angle) * distance;
 
-                         // Draw hexagons along the spiral
-                            if (random() > 0.2) { // Random gaps
-                                    const scaleFactor = map(i, 0, totalPoints, 0.8, 0.2);
-                                     // Smaller hexagons toward outside
-                                    this.drawHexagon(spiralX, spiralY, radius * scaleFactor);
-                                // ^ This was the error - using hexX, hexY instead of spiralX, spiralY
+                        // Add some misalignment
+                        const offsetX = random(-5, 5);
+                        const offsetY = random(-5, 5);
+
+                        const spiralX = x + cos(angle) * distance + offsetX;
+                        const spiralY = y + sin(angle) * distance + offsetY;
+                        
+                        // Draw ellipses along the spiral
+                        if (random() > 0.2) { // Random gaps
+                            const scaleFactor = map(i, 0, totalPoints, 0.8, 0.2);
+                            // Smaller ellipses toward outside
+
+                            // Use different rotation for each ellipse
+                            push();
+                            translate(spiralX, spiralY);
+                            rotate(random(TWO_PI)); // Random rotation for each ellipse
+                            this.drawEllipse(0, 0, radius * scaleFactor);
+                            pop();      
                          }
                     }
                 } else {
-                    // Exaggerated spiral pattern
+                    // Exaggerated spiral pattern with misaligned ellipses
                     const spiralArms = 3; // Number of spiral arms
                     const pointsPerArm = 12; // Points per arm
                     
@@ -325,15 +334,25 @@
                             const distance = (i / pointsPerArm) * radius * 1.2; // Slightly larger radius
                             const distortion = sin(i * 0.8) * 10; // Add waviness to the spiral
 
-                            const spiralX = x + cos(angle) * (distance + distortion);
-                            const spiralY = y + sin(angle) * (distance + distortion);
+                            // Add misalignment
+                            const offsetX = random(-8, 8) * (i / pointsPerArm);
+                            const offsetY = random(-8, 8) * (i / pointsPerArm);
 
-                            // Draw hexagons along the spiral
-                            const hexSize = radius * map(i, 0, pointsPerArm, 0.6, 0.1);
+                            const spiralX = x + cos(angle) * (distance + distortion) + offsetX;
+                            const spiralY = y + sin(angle) * (distance + distortion) + offsetY;
+
+                            // Draw ellipses along the spiral
+                            const ellipseSize = radius * map(i, 0, pointsPerArm, 0.6, 0.1);
                             const currentAlpha = map(this.age, 0, this.lifetime, 255, 0) * map(i, 0, pointsPerArm, 1, 0.3);
                             fill(red(this.colour), green(this.colour), blue(this.colour), currentAlpha);
 
-                            this.drawHexagon(spiralX, spiralY, hexSize);
+                            // Use different rotation for each ellipse
+                            push();
+                            translate(spiralX, spiralY);
+                            rotate(random(TWO_PI)); // Random rotation
+                            this.drawEllipse(0, 0, ellipseSize);
+                            pop();
+                            
                         }
                      }
                 }
@@ -518,12 +537,12 @@
                         random(0, 100), // low green
                         random(200, 255)  // high blue
                     );
-                } else { // 50% chance of yellow
-                    // yellow colors (high red, high green, low blue)
+                } else { // 50% chance of cyan mix (green-blue)
+                    //  (low red, high green, high blue)
                     circleColor = color(
-                        random(200, 255), // high red
+                        random(0, 50), // low red
                         random(200, 255), // high green
-                        random(0, 50)     // low blue
+                        random(200, 255)     // high blue
                     );
                 }
                 
